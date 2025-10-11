@@ -1,3 +1,7 @@
+## 0.3.4 2025/10/11
+
+* Updated to Dartastic SDK 0.9.2 / API 0.8.8, supports standard env vars and gets OTelLog fixes
+
 ## 0.3.3 2025/09/29
 
 * Fixed issues with grpc processor creation, updated to Dartastic 0.8.7
