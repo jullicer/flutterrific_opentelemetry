@@ -19,50 +19,29 @@ class OTelNavigatorObserver extends NavigatorObserver {
     required Route? previousRoute,
     required NavigationAction newRouteChangeType,
   }) {
-    OTelRouteData newOTelRouteData =
-        newRoute == null ? OTelRouteData.empty() : _routeDataForRoute(newRoute);
-    recordNavigationChange(
-      newOTelRouteData,
-      currentRouteData,
-      newRouteChangeType,
-    );
+    OTelRouteData newOTelRouteData = newRoute == null ? OTelRouteData.empty() : _routeDataForRoute(newRoute);
+    recordNavigationChange(newOTelRouteData, currentRouteData, newRouteChangeType);
     currentRouteData = newOTelRouteData;
   }
 
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    _routeChanged(
-      newRoute: route,
-      previousRoute: previousRoute,
-      newRouteChangeType: NavigationAction.push,
-    );
+    _routeChanged(newRoute: route, previousRoute: previousRoute, newRouteChangeType: NavigationAction.push);
   }
 
   @override
   void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
-    _routeChanged(
-      newRoute: newRoute,
-      previousRoute: oldRoute,
-      newRouteChangeType: NavigationAction.replace,
-    );
+    _routeChanged(newRoute: newRoute, previousRoute: oldRoute, newRouteChangeType: NavigationAction.replace);
   }
 
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    _routeChanged(
-      newRoute: route,
-      previousRoute: previousRoute,
-      newRouteChangeType: NavigationAction.pop,
-    );
+    _routeChanged(newRoute: route, previousRoute: previousRoute, newRouteChangeType: NavigationAction.pop);
   }
 
   @override
   void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    _routeChanged(
-      newRoute: route,
-      previousRoute: previousRoute,
-      newRouteChangeType: NavigationAction.remove,
-    );
+    _routeChanged(newRoute: route, previousRoute: previousRoute, newRouteChangeType: NavigationAction.remove);
   }
 
   // /// Helper method for integrating with GoRouter redirect logic
@@ -74,40 +53,42 @@ class OTelNavigatorObserver extends NavigatorObserver {
   // }
 
   OTelRouteData _routeDataForRoute(Route route) {
-    final String routeName =
-        route.settings.name ?? route.navigator?.widget.toString() ?? "unknown";
+    final settings = route.settings;
+    final routeName = settings.name ?? route.navigator?.widget.toString() ?? 'unknown';
+
     String routeArguments;
-    if (route.settings.arguments == null) {
+    if (settings.arguments == null) {
       routeArguments = 'none';
     } else {
       try {
-        routeArguments = route.settings.arguments!.toString();
+        routeArguments = settings.arguments!.toString();
       } catch (e) {
-        // Fallback if arguments do not contain a uri.
         routeArguments = 'failed toString()';
       }
     }
 
-    var page = (route.settings as Page);
-    LocalKey routeKey =
-        route.settings is Page
-            ? page.key ?? ValueKey(route.settings.name ?? 'unknown')
-            : ValueKey(route.settings.name ?? 'unknown');
-    String routePath = routeName; //fallback
-    if (route.settings.arguments != null) {
-      if (route.settings is Page && page.key is ValueKey) {
-        routePath = (page.key as ValueKey).value;
-      } else {
-        try {
-          final dynamic args = route.settings.arguments;
-          final dynamic uri = args.uri;
-          routePath = uri?.toString() ?? routeName;
-        } catch (_) {}
+    // Safely extract routeKey
+    LocalKey routeKey;
+    if (settings is Page) {
+      routeKey = settings.key ?? ValueKey(routeName);
+    } else {
+      routeKey = ValueKey(routeName);
+    }
+
+    // Attempt to get route path
+    String routePath = routeName;
+    if (settings.arguments != null) {
+      try {
+        final args = settings.arguments;
+        final uri = (args as dynamic).uri; // keep optional dynamic access
+        routePath = uri?.toString() ?? routeName;
+      } catch (_) {
+        routePath = routeName;
       }
     }
 
     return OTelRouteData(
-      routeSpanId: OTel.spanId(), //NB: Route SpanIds are generated here
+      routeSpanId: OTel.spanId(),
       routeName: routeName,
       routePath: routePath,
       routeKey: routeKey.toString(),
