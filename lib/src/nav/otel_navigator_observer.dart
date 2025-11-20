@@ -20,6 +20,9 @@ class OTelNavigatorObserver extends NavigatorObserver {
     required NavigationAction newRouteChangeType,
   }) {
     OTelRouteData newOTelRouteData = newRoute == null ? OTelRouteData.empty() : _routeDataForRoute(newRoute);
+
+    debugPrint("RouteChanged ${newOTelRouteData.routeName}  ${newOTelRouteData.routePath}");
+
     recordNavigationChange(newOTelRouteData, currentRouteData, newRouteChangeType);
     currentRouteData = newOTelRouteData;
   }

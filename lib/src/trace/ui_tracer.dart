@@ -231,7 +231,7 @@ class UITracer implements sdk.Tracer {
           routeDuration;
     }
     final span = startSpan(
-      api.NavigationSemantics.navigationAction.key,
+      newRouteName, //?? api.NavigationSemantics.navigationAction.key,
       uiSpanType: UISpanType.navigation,
       attributes: attrMap.toAttributes(),
     );
