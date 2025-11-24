@@ -57,33 +57,44 @@ class OTelNavigatorObserver extends NavigatorObserver {
 
   OTelRouteData _routeDataForRoute(Route route) {
     final settings = route.settings;
-    final routeName = settings.name ?? route.navigator?.widget.toString() ?? 'unknown';
 
+    // 1. Choose a stable, meaningful name
+    String routeName;
+    if (settings.name != null && settings.name!.isNotEmpty) {
+      // Respect explicit names from RouteSettings
+      routeName = settings.name!;
+    } else if (route is PopupRoute) {
+      // Dialogs, bottom sheets, etc
+      routeName = 'dialog:${route.runtimeType}';
+    } else if (route is PageRoute) {
+      // Regular pages without a name
+      routeName = 'page:${route.runtimeType}';
+    } else {
+      // Last-resort fallback
+      routeName = route.runtimeType.toString();
+    }
+
+    // 2. Arguments → string
     String routeArguments;
     if (settings.arguments == null) {
       routeArguments = 'none';
     } else {
       try {
-        routeArguments = settings.arguments!.toString();
-      } catch (e) {
+        routeArguments = settings.arguments.toString();
+      } catch (_) {
         routeArguments = 'failed toString()';
       }
     }
 
-    // Safely extract routeKey
-    LocalKey routeKey;
-    if (settings is Page) {
-      routeKey = settings.key ?? ValueKey(routeName);
-    } else {
-      routeKey = ValueKey(routeName);
-    }
+    // 3. Stable route key (don't rely on Page)
+    final routeKey = ValueKey(settings.name ?? routeName);
 
-    // Attempt to get route path
+    // 4. Try to get a "path" (e.g., from Router/GoRouter args)
     String routePath = routeName;
     if (settings.arguments != null) {
       try {
         final args = settings.arguments;
-        final uri = (args as dynamic).uri; // keep optional dynamic access
+        final uri = (args as dynamic).uri; // optional dynamic access
         routePath = uri?.toString() ?? routeName;
       } catch (_) {
         routePath = routeName;
