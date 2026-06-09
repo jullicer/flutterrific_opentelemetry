@@ -4,8 +4,7 @@
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutterrific_opentelemetry/src/trace/ui_span.dart';
-import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart'
-    as api;
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart' as api;
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart' as sdk;
 
 import '../flutterrific_otel.dart';
@@ -21,13 +20,10 @@ class UITracer implements sdk.Tracer {
   @override
   sdk.Sampler? get sampler => _sampler ?? _provider.sampler;
 
-  UITracer._({
-    required sdk.TracerProvider provider,
-    required sdk.Tracer delegate,
-    sdk.Sampler? sampler,
-  }) : _provider = provider,
-       _delegate = delegate,
-       _sampler = sampler;
+  UITracer._({required sdk.TracerProvider provider, required sdk.Tracer delegate, sdk.Sampler? sampler})
+    : _provider = provider,
+      _delegate = delegate,
+      _sampler = sampler;
 
   @override
   String get name => _delegate.name;
@@ -45,8 +41,7 @@ class UITracer implements sdk.Tracer {
   api.Attributes? get attributes => _delegate.attributes;
 
   @override
-  set attributes(api.Attributes? attributes) =>
-      _delegate.attributes = attributes;
+  set attributes(api.Attributes? attributes) => _delegate.attributes = attributes;
 
   @override
   bool get enabled => _delegate.enabled;
@@ -86,10 +81,7 @@ class UITracer implements sdk.Tracer {
       isRecording: isRecording,
       context: context,
     );
-    return UISpanCreate.create(
-      delegateSpan: delegateSpan,
-      uiSpanType: uiSpanType,
-    );
+    return UISpanCreate.create(delegateSpan: delegateSpan, uiSpanType: uiSpanType);
   }
 
   @override
@@ -148,10 +140,7 @@ class UITracer implements sdk.Tracer {
       isRecording: isRecording,
     );
 
-    return UISpanCreate.create(
-      delegateSpan: delegateSpan,
-      uiSpanType: uiSpanType,
-    );
+    return UISpanCreate.create(delegateSpan: delegateSpan, uiSpanType: uiSpanType);
   }
 
   /// Starts and ends a span that represents a navigation change
@@ -215,26 +204,32 @@ class UITracer implements sdk.Tracer {
       api.NavigationSemantics.navigationAction.key: routeChangeType.toString(),
     };
     if (previousRouteName != null) {
-      attrMap[api.NavigationSemantics.previousRouteName.key] =
-          previousRouteName;
+      attrMap[api.NavigationSemantics.previousRouteName.key] = previousRouteName;
     }
     if (previousRoutePath != null) {
-      attrMap[api.NavigationSemantics.previousRoutePath.key] =
-          previousRoutePath;
+      attrMap[api.NavigationSemantics.previousRoutePath.key] = previousRoutePath;
     }
     if (previousRouteId != null) {
-      attrMap[api.NavigationSemantics.previousRouteId.key] =
-          previousRouteId.hexString;
+      attrMap[api.NavigationSemantics.previousRouteId.key] = previousRouteId.hexString;
     }
     if (routeDuration != null) {
-      attrMap[api.NavigationSemantics.previousRouteDuration.key] =
-          routeDuration;
+      attrMap[api.NavigationSemantics.previousRouteDuration.key] = routeDuration;
     }
+
+    Attributes commonAttributes =
+        FlutterOTel.commonAttributesFunction != null ? FlutterOTel.commonAttributesFunction!() : Attributes.of({});
+
+    Attributes attributes = attrMap.toAttributes().copyWithAttributes(commonAttributes);
+    // print("Creating app NavChange span with attributes: $attributes");
+
     final span = startSpan(
       newRouteName, //?? api.NavigationSemantics.navigationAction.key,
       uiSpanType: UISpanType.navigation,
-      attributes: attrMap.toAttributes(),
+      attributes: attributes,
     );
+
+    // print(span.toString());
+
     return span;
   }
 
@@ -255,22 +250,13 @@ class UITracer implements sdk.Tracer {
         <String, Object>{
           api.NavigationSemantics.routeName.key: screenName,
           api.InteractionSemantics.interactionType.key: interactionType.key,
-          if (targetName != null)
-            api.InteractionSemantics.interactionTarget.key: targetName,
-          if (responseTime != null)
-            api.InteractionSemantics.inputDelay.key:
-                responseTime.inMilliseconds,
+          if (targetName != null) api.InteractionSemantics.interactionTarget.key: targetName,
+          if (responseTime != null) api.InteractionSemantics.inputDelay.key: responseTime.inMilliseconds,
         }.toAttributes();
     if (attributes != null) {
-      interactionAttributes = interactionAttributes.copyWithAttributes(
-        attributes,
-      );
+      interactionAttributes = interactionAttributes.copyWithAttributes(attributes);
     }
-    final span = _delegate.startSpan(
-      spanName,
-      kind: api.SpanKind.client,
-      attributes: interactionAttributes,
-    );
+    final span = _delegate.startSpan(spanName, kind: api.SpanKind.client, attributes: interactionAttributes);
 
     if (responseTime != null) {
       // Set the end time based on the response time
@@ -281,12 +267,7 @@ class UITracer implements sdk.Tracer {
   }
 
   /// Records an error within the current context
-  void recordError(
-    String context,
-    dynamic error,
-    StackTrace? stackTrace, {
-    Map<String, dynamic>? attributes,
-  }) {
+  void recordError(String context, dynamic error, StackTrace? stackTrace, {Map<String, dynamic>? attributes}) {
     if (!enabled) {
       return;
     }
@@ -310,11 +291,7 @@ class UITracer implements sdk.Tracer {
   }
 
   /// Records a performance metric
-  void recordPerformanceMetric(
-    String name,
-    Duration duration, {
-    Map<String, dynamic>? attributes,
-  }) {
+  void recordPerformanceMetric(String name, Duration duration, {Map<String, dynamic>? attributes}) {
     if (!enabled) {
       return;
     }
@@ -325,8 +302,7 @@ class UITracer implements sdk.Tracer {
       attributes:
           <String, Object>{
             'perf.metric.name': name,
-            api.PerformanceSemantics.renderDuration.key:
-                duration.inMilliseconds,
+            api.PerformanceSemantics.renderDuration.key: duration.inMilliseconds,
             ...?attributes,
           }.toAttributes(),
     );
@@ -356,22 +332,24 @@ class UITracer implements sdk.Tracer {
       api.AppLifecycleSemantics.appLifecycleTimestamp.key: startTime,
     };
     if (previousState != null) {
-      attributeMap[api.AppLifecycleSemantics.appLifecyclePreviousState.key] =
-          previousState;
+      attributeMap[api.AppLifecycleSemantics.appLifecyclePreviousState.key] = previousState;
     }
     if (previousStateId != null) {
-      attributeMap[api.AppLifecycleSemantics.appLifecyclePreviousStateId.key] =
-          previousStateId;
+      attributeMap[api.AppLifecycleSemantics.appLifecyclePreviousStateId.key] = previousStateId;
     }
     if (previousStateDuration != null) {
-      attributeMap[api.AppLifecycleSemantics.appLifecycleDuration.key] =
-          previousStateDuration;
+      attributeMap[api.AppLifecycleSemantics.appLifecycleDuration.key] = previousStateDuration;
     }
 
+    Attributes commonAttributes =
+        FlutterOTel.commonAttributesFunction != null ? FlutterOTel.commonAttributesFunction!() : Attributes.of({});
+
+    Attributes attributes = attributeMap.toAttributes().copyWithAttributes(commonAttributes);
+    // print("Creating app lifecycle span with attributes: $attributes");
     return startSpan(
       api.AppLifecycleSemantics.appLifecycleChange.key,
       uiSpanType: UISpanType.appLifecycle,
-      attributes: attributeMap.toAttributes(),
+      attributes: attributes,
     );
   }
 
@@ -385,12 +363,7 @@ class UITracer implements sdk.Tracer {
     SpanKind kind = SpanKind.internal,
     Attributes? attributes,
   }) {
-    return _delegate.recordSpan(
-      name: name,
-      fn: fn,
-      kind: kind,
-      attributes: attributes,
-    );
+    return _delegate.recordSpan(name: name, fn: fn, kind: kind, attributes: attributes);
   }
 
   @override
@@ -400,12 +373,7 @@ class UITracer implements sdk.Tracer {
     SpanKind kind = SpanKind.internal,
     Attributes? attributes,
   }) {
-    return _delegate.recordSpanAsync(
-      name: name,
-      fn: fn,
-      kind: kind,
-      attributes: attributes,
-    );
+    return _delegate.recordSpanAsync(name: name, fn: fn, kind: kind, attributes: attributes);
   }
 
   @override
@@ -415,12 +383,7 @@ class UITracer implements sdk.Tracer {
     SpanKind kind = SpanKind.internal,
     Attributes? attributes,
   }) {
-    return _delegate.startActiveSpan(
-      name: name,
-      fn: fn,
-      kind: kind,
-      attributes: attributes,
-    );
+    return _delegate.startActiveSpan(name: name, fn: fn, kind: kind, attributes: attributes);
   }
 
   @override
@@ -430,12 +393,7 @@ class UITracer implements sdk.Tracer {
     SpanKind kind = SpanKind.internal,
     Attributes? attributes,
   }) {
-    return _delegate.startActiveSpanAsync(
-      name: name,
-      fn: fn,
-      kind: kind,
-      attributes: attributes,
-    );
+    return _delegate.startActiveSpanAsync(name: name, fn: fn, kind: kind, attributes: attributes);
   }
 
   @override
@@ -445,12 +403,7 @@ class UITracer implements sdk.Tracer {
     SpanKind kind = SpanKind.internal,
     Attributes? attributes,
   }) {
-    return _delegate.startSpanWithContext(
-      name: name,
-      context: context,
-      kind: kind,
-      attributes: attributes,
-    );
+    return _delegate.startSpanWithContext(name: name, context: context, kind: kind, attributes: attributes);
   }
 
   @override

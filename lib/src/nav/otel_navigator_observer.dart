@@ -63,15 +63,9 @@ class OTelNavigatorObserver extends NavigatorObserver {
     if (settings.name != null && settings.name!.isNotEmpty) {
       // Respect explicit names from RouteSettings
       routeName = settings.name!;
-    } else if (route is PopupRoute) {
-      // Dialogs, bottom sheets, etc
-      routeName = 'dialog:${route.runtimeType}';
-    } else if (route is PageRoute) {
-      // Regular pages without a name
-      routeName = 'page:${route.runtimeType}';
     } else {
-      // Last-resort fallback
-      routeName = route.runtimeType.toString();
+      // Try to detect modal/dialog routes and extract descriptive names
+      routeName = _detectRouteType(route);
     }
 
     // 2. Arguments → string
@@ -108,6 +102,114 @@ class OTelNavigatorObserver extends NavigatorObserver {
       routeKey: routeKey.toString(),
       routeArguments: routeArguments,
     );
+  }
+
+  /// Detect route type and generate a descriptive name
+  String _detectRouteType(Route route) {
+    final routeTypeName = route.runtimeType.toString();
+
+    // Check for modal/dialog routes
+    if (_isModalRoute(route)) {
+      return _getModalName(route);
+    }
+
+    // Check for page routes
+    if (route is PageRoute) {
+      return 'page:$routeTypeName';
+    }
+
+    // Default fallback
+    return routeTypeName;
+  }
+
+  /// Determine if this route is a modal/dialog
+  bool _isModalRoute(Route route) {
+    final routeType = route.runtimeType.toString();
+
+    // Common modal/dialog route types
+    final modalTypes = {
+      'PopupRoute',
+      'RawDialogRoute',
+      'CupertinoPageRoute',
+      '_ModalRoute',
+      '_PopupRoute',
+      'BottomSheetRoute',
+      'CupertinoBarrierRoute',
+      'TransitionRoute',
+      'OverlayRoute',
+    };
+
+    return modalTypes.any((type) => routeType.contains(type)) ||
+        route is PopupRoute ||
+        _hasModalCharacteristics(route);
+  }
+
+  /// Extract a descriptive name for modal routes
+  String _getModalName(Route route) {
+    final routeType = route.runtimeType.toString();
+
+    // Try to extract widget name from builder if available
+    try {
+      final builder = (route as dynamic).builder;
+      if (builder != null) {
+        final builderStr = builder.toString();
+        // Extract class name from closure: "Closure: (BuildContext) => InstanceMirror on SomeDialog"
+        final match = RegExp(r'on\s+(\w+)').firstMatch(builderStr);
+        if (match != null) {
+          return 'modal:${match.group(1)}';
+        }
+      }
+    } catch (_) {
+      // Ignore if builder extraction fails
+    }
+
+    // Extract from _builder if it's a PopupRoute subclass
+    try {
+      final builder = (route as dynamic)._builder;
+      if (builder != null) {
+        final builderStr = builder.toString();
+        final match = RegExp(r'on\s+(\w+)').firstMatch(builderStr);
+        if (match != null) {
+          return 'modal:${match.group(1)}';
+        }
+      }
+    } catch (_) {
+      // Ignore if _builder extraction fails
+    }
+
+    // Fallback to type-based naming
+    if (routeType.contains('BottomSheet')) {
+      return 'modal:BottomSheet';
+    }
+    if (routeType.contains('Dialog')) {
+      return 'modal:Dialog';
+    }
+    if (routeType.contains('Cupertino')) {
+      return 'modal:CupertinoModal';
+    }
+
+    return 'modal:$routeType';
+  }
+
+  /// Check if route has modal characteristics even if type isn't explicitly modal
+  bool _hasModalCharacteristics(Route route) {
+    try {
+      // Check if route has barrierDismissible (common for modals)
+      final barrierDismissible = (route as dynamic).barrierDismissible;
+      if (barrierDismissible != null) {
+        return true;
+      }
+
+      // Check if route has barrierColor (modals often have a barrier)
+      final barrierColor = (route as dynamic).barrierColor;
+      if (barrierColor != null) {
+        return true;
+      }
+
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
 
   /*
