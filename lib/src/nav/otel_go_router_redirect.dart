@@ -24,14 +24,11 @@ import 'otel_route_data.dart';
 class OTelGoRouterRedirect {
   /// The original (delegate) redirect function supplied by the app.
   final GoRouterRedirect wrappedRedirect;
-  OTelRouteData? currentOTelRouteData;
+  static OTelRouteData? currentOTelRouteData;
 
   OTelGoRouterRedirect(this.wrappedRedirect);
 
-  Future<String?> callRedirect(
-    BuildContext context,
-    GoRouterState state,
-  ) async {
+  Future<String?> callRedirect(BuildContext context, GoRouterState state) async {
     // Here you can insert any OTel instrumentation code,
     // e.g., record a span or log the current route.
     // For example:

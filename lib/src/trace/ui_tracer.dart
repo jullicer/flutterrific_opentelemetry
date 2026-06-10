@@ -144,7 +144,7 @@ class UITracer implements sdk.Tracer {
   }
 
   /// Starts and ends a span that represents a navigation change
-  void recordNavChange(
+  SpanId recordNavChange(
     String newRouteName,
     String newRoutePath,
     String newRouteKey,
@@ -172,6 +172,7 @@ class UITracer implements sdk.Tracer {
     );
     span.end();
     FlutterOTel.forceFlush();
+    return span.spanId;
   }
 
   /// Starts a span that describes a route change
@@ -218,17 +219,13 @@ class UITracer implements sdk.Tracer {
 
     Attributes commonAttributes =
         FlutterOTel.commonAttributesFunction != null ? FlutterOTel.commonAttributesFunction!() : Attributes.of({});
-
     Attributes attributes = attrMap.toAttributes().copyWithAttributes(commonAttributes);
-    // print("Creating app NavChange span with attributes: $attributes");
 
     final span = startSpan(
       newRouteName, //?? api.NavigationSemantics.navigationAction.key,
       uiSpanType: UISpanType.navigation,
       attributes: attributes,
     );
-
-    // print(span.toString());
 
     return span;
   }

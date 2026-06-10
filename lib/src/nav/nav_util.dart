@@ -7,15 +7,15 @@ import 'otel_route_data.dart';
 
 /// Common method for recording a nav span from OTelRouteData
 /// Used by the [OTelGoRouterRedirect] and [OTelNavigatorObserver]
-void recordNavigationChange(
+SpanId recordNavigationChange(
   OTelRouteData newRouteData,
   OTelRouteData? previousRouteData,
   sdk.NavigationAction newRouteChangeType,
 ) {
-  var routeDuration = previousRouteData?.timestamp.difference(
-    newRouteData.timestamp,
-  );
-  FlutterOTel.tracer.recordNavChange(
+  var routeDuration = previousRouteData?.timestamp.difference(newRouteData.timestamp);
+
+  // print("FLUTTER_TRACER_SERVICE: ${FlutterOTel.tracer.provider.serviceName}");
+  return FlutterOTel.tracer.recordNavChange(
     newRouteData.routeName,
     newRouteData.routePath,
     newRouteData.routeKey,

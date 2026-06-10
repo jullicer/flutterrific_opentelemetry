@@ -10,7 +10,8 @@ import 'otel_route_data.dart';
 /// Observer for route changes in Flutter navigation
 class OTelNavigatorObserver extends NavigatorObserver {
   /// a spanId equivalent for a route
-  OTelRouteData? currentRouteData;
+  static OTelRouteData? currentRouteData;
+  static SpanId? currentRouteSpanId;
 
   OTelNavigatorObserver();
 
@@ -21,9 +22,11 @@ class OTelNavigatorObserver extends NavigatorObserver {
   }) {
     OTelRouteData newOTelRouteData = newRoute == null ? OTelRouteData.empty() : _routeDataForRoute(newRoute);
 
-    debugPrint("RouteChanged ${newOTelRouteData.routeName}  ${newOTelRouteData.routePath}");
+    debugPrint(
+      "RouteChanged ${newOTelRouteData.routeSpanId} ${newOTelRouteData.routeName}  ${newOTelRouteData.routePath}",
+    );
 
-    recordNavigationChange(newOTelRouteData, currentRouteData, newRouteChangeType);
+    currentRouteSpanId = recordNavigationChange(newOTelRouteData, currentRouteData, newRouteChangeType);
     currentRouteData = newOTelRouteData;
   }
 
@@ -57,6 +60,8 @@ class OTelNavigatorObserver extends NavigatorObserver {
 
   OTelRouteData _routeDataForRoute(Route route) {
     final settings = route.settings;
+
+    // debugPrint("Route ${route.toString()} with settings ${settings.toString()}");
 
     // 1. Choose a stable, meaningful name
     String routeName;
@@ -96,7 +101,7 @@ class OTelNavigatorObserver extends NavigatorObserver {
     }
 
     return OTelRouteData(
-      routeSpanId: OTel.spanId(),
+      routeSpanId: Context.current?.spanContext?.spanId ?? OTel.spanId(),
       routeName: routeName,
       routePath: routePath,
       routeKey: routeKey.toString(),
@@ -107,6 +112,8 @@ class OTelNavigatorObserver extends NavigatorObserver {
   /// Detect route type and generate a descriptive name
   String _detectRouteType(Route route) {
     final routeTypeName = route.runtimeType.toString();
+
+    debugPrint("Detecting route type with runtime type $routeTypeName");
 
     // Check for modal/dialog routes
     if (_isModalRoute(route)) {
@@ -137,11 +144,12 @@ class OTelNavigatorObserver extends NavigatorObserver {
       'CupertinoBarrierRoute',
       'TransitionRoute',
       'OverlayRoute',
+
+      /// popscope?
+      'PopScope',
     };
 
-    return modalTypes.any((type) => routeType.contains(type)) ||
-        route is PopupRoute ||
-        _hasModalCharacteristics(route);
+    return modalTypes.any((type) => routeType.contains(type)) || route is PopupRoute || _hasModalCharacteristics(route);
   }
 
   /// Extract a descriptive name for modal routes
