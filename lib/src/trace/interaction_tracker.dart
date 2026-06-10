@@ -21,7 +21,7 @@ class OTelInteractionTracker {
   }
 
   /// Track a button click
-  void trackButtonClick(BuildContext context, String buttonId) {
+  void trackButtonClick(BuildContext context, String buttonId, Attributes attributes) {
     if (!tracer.enabled) {
       debugPrint("Tracer disabled. $buttonId");
       return;
@@ -36,7 +36,7 @@ class OTelInteractionTracker {
         routeName,
         InteractionType.click,
         targetName: buttonId,
-        attributes: _commonAttributes(),
+        attributes: attributes.copyWithAttributes(_commonAttributes()),
       );
     } catch (e, stack) {
       debugPrintStack(stackTrace: stack);
@@ -44,7 +44,7 @@ class OTelInteractionTracker {
   }
 
   /// Track a text input
-  void trackTextInput(BuildContext context, String inputId) {
+  void trackTextInput(BuildContext context, String inputId, Attributes attributes) {
     if (!tracer.enabled) return;
 
     final routeName = _getRouteName(context);
@@ -52,12 +52,12 @@ class OTelInteractionTracker {
       routeName,
       InteractionType.textInput,
       targetName: inputId,
-      attributes: _commonAttributes(),
+      attributes: attributes.copyWithAttributes(_commonAttributes()),
     );
   }
 
   /// Track a list item selection
-  void trackListItemSelected(BuildContext context, String listId, int index) {
+  void trackListItemSelected(BuildContext context, String listId, int index, Attributes attributes) {
     if (!tracer.enabled) return;
 
     final routeName = _getRouteName(context);
@@ -67,12 +67,12 @@ class OTelInteractionTracker {
       targetName: listId,
       attributes: {
         InteractionType.listSelectionIndex.key: index,
-      }.toAttributes().copyWithAttributes(_commonAttributes()),
+      }.toAttributes().copyWithAttributes(attributes).copyWithAttributes(_commonAttributes()),
     );
   }
 
   /// Track a drag gesture
-  void trackDragGesture(BuildContext context, String elementId, Offset delta) {
+  void trackDragGesture(BuildContext context, String elementId, Offset delta, Attributes attributes) {
     if (!tracer.enabled) return;
 
     final routeName = _getRouteName(context);
@@ -83,12 +83,12 @@ class OTelInteractionTracker {
       attributes: {
         InteractionType.gestureDeltaX.key: delta.dx,
         InteractionType.gestureDeltaY.key: delta.dy,
-      }.toAttributes().copyWithAttributes(_commonAttributes()),
+      }.toAttributes().copyWithAttributes(attributes).copyWithAttributes(_commonAttributes()),
     );
   }
 
   /// Track a swipe gesture
-  void trackSwipeGesture(BuildContext context, String elementId, String direction) {
+  void trackSwipeGesture(BuildContext context, String elementId, String direction, Attributes attributes) {
     if (!tracer.enabled) return;
 
     final routeName = _getRouteName(context);
@@ -98,12 +98,12 @@ class OTelInteractionTracker {
       targetName: elementId,
       attributes: {
         InteractionType.gestureDirection.key: direction,
-      }.toAttributes().copyWithAttributes(_commonAttributes()),
+      }.toAttributes().copyWithAttributes(attributes).copyWithAttributes(_commonAttributes()),
     );
   }
 
   /// Track a long press gesture
-  void trackLongPress(BuildContext context, String elementId) {
+  void trackLongPress(BuildContext context, String elementId, Attributes attributes) {
     if (!tracer.enabled) return;
 
     final routeName = _getRouteName(context);
@@ -111,12 +111,12 @@ class OTelInteractionTracker {
       routeName,
       InteractionType.longPress,
       targetName: elementId,
-      attributes: _commonAttributes(),
+      attributes: _commonAttributes().copyWithAttributes(attributes),
     );
   }
 
   /// Track a scroll event
-  void trackScroll(BuildContext context, String scrollableId, double position) {
+  void trackScroll(BuildContext context, String scrollableId, double position, Attributes attributes) {
     if (!tracer.enabled) return;
 
     final routeName = _getRouteName(context);
@@ -124,12 +124,14 @@ class OTelInteractionTracker {
       routeName,
       InteractionType.scroll,
       targetName: scrollableId,
-      attributes: {'scroll.position': position}.toAttributes().copyWithAttributes(_commonAttributes()),
+      attributes: {
+        'scroll.position': position,
+      }.toAttributes().copyWithAttributes(attributes).copyWithAttributes(_commonAttributes()),
     );
   }
 
   /// Track form submission
-  void trackFormSubmit(BuildContext context, String formId) {
+  void trackFormSubmit(BuildContext context, String formId, Attributes attributes) {
     if (!tracer.enabled) return;
 
     final routeName = _getRouteName(context);
@@ -137,12 +139,12 @@ class OTelInteractionTracker {
       routeName,
       InteractionType.formSubmit,
       targetName: formId,
-      attributes: _commonAttributes(),
+      attributes: _commonAttributes().copyWithAttributes(attributes),
     );
   }
 
   /// Track dropdown/menu selection
-  void trackMenuSelection(BuildContext context, String menuId, String selection) {
+  void trackMenuSelection(BuildContext context, String menuId, String selection, Attributes attributes) {
     if (!tracer.enabled) return;
 
     final routeName = _getRouteName(context);
@@ -152,7 +154,7 @@ class OTelInteractionTracker {
       targetName: menuId,
       attributes: {
         InteractionType.menuSelectedItem.key: selection,
-      }.toAttributes().copyWithAttributes(_commonAttributes()),
+      }.toAttributes().copyWithAttributes(_commonAttributes()).copyWithAttributes(attributes),
     );
   }
 
@@ -174,14 +176,14 @@ extension OTelTrackingExtensions on Widget {
   OTelInteractionTracker get otelTracker => OTelInteractionTracker(uiTracer: FlutterOTel.tracer);
 
   /// Adds OpenTelemetry tracking to a button
-  Widget withOTelButtonTracking(String buttonId) {
+  Widget withOTelButtonTracking(String buttonId, Attributes? attributes) {
     return Builder(
       builder: (context) {
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
           onTap: () {
             debugPrint("InterActionTrigger $buttonId");
-            otelTracker.trackButtonClick(context, buttonId);
+            otelTracker.trackButtonClick(context, buttonId, attributes ?? Attributes.of({}));
           },
           child: this,
         );
@@ -190,13 +192,13 @@ extension OTelTrackingExtensions on Widget {
   }
 
   /// Adds OpenTelemetry tracking to a TextField
-  Widget withOTelTextFieldTracking(String fieldId) {
+  Widget withOTelTextFieldTracking(String fieldId, Attributes? attributes) {
     return Builder(
       builder: (context) {
         return Focus(
           onFocusChange: (hasFocus) {
             if (hasFocus) {
-              otelTracker.trackTextInput(context, fieldId);
+              otelTracker.trackTextInput(context, fieldId, attributes ?? Attributes.of({}));
             }
           },
           child: this,
