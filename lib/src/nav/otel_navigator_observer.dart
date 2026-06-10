@@ -101,7 +101,7 @@ class OTelNavigatorObserver extends NavigatorObserver {
     }
 
     return OTelRouteData(
-      routeSpanId: Context.current?.spanContext?.spanId ?? OTel.spanId(),
+      routeSpanId: Context.current?.spanContext?.parentSpanId ?? OTel.spanId(),
       routeName: routeName,
       routePath: routePath,
       routeKey: routeKey.toString(),

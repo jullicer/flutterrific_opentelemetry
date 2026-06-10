@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
+import 'package:flutterrific_opentelemetry/flutterrific_opentelemetry.dart';
 import '../flutterrific_otel.dart';
 import 'ui_tracer.dart';
 
@@ -15,6 +16,10 @@ class OTelInteractionTracker {
 
   UITracer get tracer => _tracer ?? FlutterOTel.tracer;
 
+  Attributes _commonAttributes() {
+    return FlutterOTel.commonAttributesFunction != null ? FlutterOTel.commonAttributesFunction!() : Attributes.of({});
+  }
+
   /// Track a button click
   void trackButtonClick(BuildContext context, String buttonId) {
     if (!tracer.enabled) {
@@ -25,8 +30,14 @@ class OTelInteractionTracker {
     final routeName = _getRouteName(context);
 
     debugPrint("Tracer trackButtonClick. $buttonId -> $routeName");
+
     try {
-      tracer.recordUserInteraction(routeName, InteractionType.click, targetName: buttonId);
+      tracer.recordUserInteraction(
+        routeName,
+        InteractionType.click,
+        targetName: buttonId,
+        attributes: _commonAttributes(),
+      );
     } catch (e, stack) {
       debugPrintStack(stackTrace: stack);
     }
@@ -37,7 +48,12 @@ class OTelInteractionTracker {
     if (!tracer.enabled) return;
 
     final routeName = _getRouteName(context);
-    tracer.recordUserInteraction(routeName, InteractionType.textInput, targetName: inputId);
+    tracer.recordUserInteraction(
+      routeName,
+      InteractionType.textInput,
+      targetName: inputId,
+      attributes: _commonAttributes(),
+    );
   }
 
   /// Track a list item selection
@@ -49,7 +65,9 @@ class OTelInteractionTracker {
       routeName,
       InteractionType.listSelection,
       targetName: listId,
-      attributes: {InteractionType.listSelectionIndex.key: index}.toAttributes(),
+      attributes: {
+        InteractionType.listSelectionIndex.key: index,
+      }.toAttributes().copyWithAttributes(_commonAttributes()),
     );
   }
 
@@ -62,8 +80,10 @@ class OTelInteractionTracker {
       routeName,
       InteractionType.drag,
       targetName: elementId,
-      attributes:
-          {InteractionType.gestureDeltaX.key: delta.dx, InteractionType.gestureDeltaY.key: delta.dy}.toAttributes(),
+      attributes: {
+        InteractionType.gestureDeltaX.key: delta.dx,
+        InteractionType.gestureDeltaY.key: delta.dy,
+      }.toAttributes().copyWithAttributes(_commonAttributes()),
     );
   }
 
@@ -76,7 +96,9 @@ class OTelInteractionTracker {
       routeName,
       InteractionType.swipe,
       targetName: elementId,
-      attributes: {InteractionType.gestureDirection.key: direction}.toAttributes(),
+      attributes: {
+        InteractionType.gestureDirection.key: direction,
+      }.toAttributes().copyWithAttributes(_commonAttributes()),
     );
   }
 
@@ -85,7 +107,12 @@ class OTelInteractionTracker {
     if (!tracer.enabled) return;
 
     final routeName = _getRouteName(context);
-    tracer.recordUserInteraction(routeName, InteractionType.longPress, targetName: elementId);
+    tracer.recordUserInteraction(
+      routeName,
+      InteractionType.longPress,
+      targetName: elementId,
+      attributes: _commonAttributes(),
+    );
   }
 
   /// Track a scroll event
@@ -97,7 +124,7 @@ class OTelInteractionTracker {
       routeName,
       InteractionType.scroll,
       targetName: scrollableId,
-      attributes: {'scroll.position': position}.toAttributes(),
+      attributes: {'scroll.position': position}.toAttributes().copyWithAttributes(_commonAttributes()),
     );
   }
 
@@ -106,7 +133,12 @@ class OTelInteractionTracker {
     if (!tracer.enabled) return;
 
     final routeName = _getRouteName(context);
-    tracer.recordUserInteraction(routeName, InteractionType.formSubmit, targetName: formId);
+    tracer.recordUserInteraction(
+      routeName,
+      InteractionType.formSubmit,
+      targetName: formId,
+      attributes: _commonAttributes(),
+    );
   }
 
   /// Track dropdown/menu selection
@@ -118,7 +150,9 @@ class OTelInteractionTracker {
       routeName,
       InteractionType.menuSelect,
       targetName: menuId,
-      attributes: {InteractionType.menuSelectedItem.key: selection}.toAttributes(),
+      attributes: {
+        InteractionType.menuSelectedItem.key: selection,
+      }.toAttributes().copyWithAttributes(_commonAttributes()),
     );
   }
 
@@ -127,6 +161,9 @@ class OTelInteractionTracker {
     final route = ModalRoute.of(context);
     if (route != null && route.settings.name != null) {
       return route.settings.name!;
+    }
+    if (OTelNavigatorObserver.currentRouteData != null) {
+      return OTelNavigatorObserver.currentRouteData!.routePath!;
     }
     return 'unknown_route';
   }
