@@ -17,6 +17,8 @@ class UITracer implements sdk.Tracer {
   final sdk.Tracer _delegate;
   final sdk.Sampler? _sampler;
 
+  api.APISpan? _rootSpan;
+
   @override
   sdk.Sampler? get sampler => _sampler ?? _provider.sampler;
 
@@ -24,6 +26,10 @@ class UITracer implements sdk.Tracer {
     : _provider = provider,
       _delegate = delegate,
       _sampler = sampler;
+
+  api.APISpan? get rootSpan => _rootSpan ?? Context.root.span;
+
+  set rootSpan(api.APISpan? span) => _rootSpan = span;
 
   @override
   String get name => _delegate.name;
@@ -225,13 +231,16 @@ class UITracer implements sdk.Tracer {
       newRouteName, //?? api.NavigationSemantics.navigationAction.key,
       uiSpanType: UISpanType.navigation,
       attributes: attributes,
+
+      /// force 1st layer child for all nav spans
+      // parentSpan: rootSpan,
     );
 
     return span;
   }
 
   /// Creates and immediately ends a span for a user interaction
-  void recordUserInteraction(
+  Span recordUserInteraction(
     String screenName,
     api.OTelSemantic interactionType, {
     String? targetName,
@@ -239,10 +248,10 @@ class UITracer implements sdk.Tracer {
     Attributes? attributes,
   }) {
     if (!enabled) {
-      return;
+      return Context.root.span as Span;
     }
 
-    final spanName = 'interaction.$screenName.$interactionType';
+    final spanName = 'interaction.${targetName ?? interactionType.key}';
     var interactionAttributes =
         <String, Object>{
           api.NavigationSemantics.routeName.key: screenName,
@@ -253,7 +262,12 @@ class UITracer implements sdk.Tracer {
     if (attributes != null) {
       interactionAttributes = interactionAttributes.copyWithAttributes(attributes);
     }
-    final span = _delegate.startSpan(spanName, kind: api.SpanKind.client, attributes: interactionAttributes);
+    final span = _delegate.startSpan(
+      spanName,
+      kind: api.SpanKind.client,
+      attributes: interactionAttributes,
+      // context: OTel.context(baggage: Context.root.baggage),
+    );
 
     if (responseTime != null) {
       // Set the end time based on the response time
@@ -261,6 +275,8 @@ class UITracer implements sdk.Tracer {
     } else {
       span.end();
     }
+
+    return span;
   }
 
   /// Records an error within the current context

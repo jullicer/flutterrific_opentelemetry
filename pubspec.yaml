@@ -1,6 +1,6 @@
 name: flutterrific_opentelemetry
 description: "A Flutter package for OpenTelemetry based on dartastic_opentelemetry"
-version: 0.4.1
+version: 0.4.2
 publisher: mindfulsoftware.com
 homepage: https://dartastic.io
 repository: https://github.com/MindfulSoftwareLLC/flutterrific_opentelemetry.git
